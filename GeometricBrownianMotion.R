@@ -1,6 +1,6 @@
 
 simGBM <- function(S = 100, DTintervals = 252, mu = 0.1, sig = 0.2, numSims = 1){
-  """7
+  """
   Generates a Geometric Brownian Motion
   
   Inputs:
@@ -50,5 +50,5 @@ Sim<numSims> is the simulation number
 }
 
 
-test <- simGBM(DTintervals = 52, numSims = 50)
-test
+#test <- simGBM(DTintervals = 52, numSims = 50)
+#test
