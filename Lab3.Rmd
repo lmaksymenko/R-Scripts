@@ -1,0 +1,141 @@
+---
+title: "Lab 3"
+authors: Leo Maksymenko, Sid Iyer, Zheng Li
+output: pdf_document
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(quantmod)
+library(reshape2)
+```
+
+Download prices for the SPY ETF, dating between 2017-01-01 and 2020-12-31
+
+```{r, results = 'hide', message=FALSE, warning=FALSE}
+
+getSymbols("SPY", from="2017-01-01", to="2020-12-31")
+```
+
+Compute the daily returns over this sample period
+
+```{r}
+daily_spy = dailyReturn(SPY$SPY.Adjusted, type = "log")
+```
+
+
+GBM Function
+```{r}
+
+simGBM <- function(S = 100, DTintervals = 252, mu = 0.1, sig = 0.2, numSims = 1){
+  dt <- 1/DTintervals#not sure if this is the correct way to do this
+  dtIndex <- c(0)
+  simColNames <- paste("Sim", 1:numSims, sep="")
+  
+  for (i in 1:DTintervals){
+    dtIndex <- c(dtIndex, i/DTintervals)
+  }
+  
+  simulations <- as.data.frame(matrix(0, ncol = numSims + 1, nrow = DTintervals + 1))
+  simulations[, 1] <- dtIndex
+  names(simulations) <-c("t / Simulation", simColNames) 
+  
+  for (j in 1:numSims + 1){
+    sim <- c(S)
+    for(i in 1:DTintervals) {
+      dR <- rnorm(1,dt*(mu - 0.5*sig^2), sig*sqrt(dt) )
+      S_dt <- sim[i]*exp(dR)
+      sim <- c(sim,S_dt) 
+    }
+   simulations[,j] <- sim
+  }
+  return(simulations)
+}
+
+calculate_VaR <- function(sim, c){
+  VaR = c()
+  for(i in 1:nrow(sim)){
+    VaR = c(VaR, mean(as.numeric(sim[i, ])) - as.numeric(quantile(sim[i, ], .05)))
+  }
+  return(as.data.frame(VaR))
+}
+
+
+```
+
+Assume that the price follows a GBM. Calibrate the model and report mu and sigma
+
+```{r}
+#daily mean, sd
+daily_mean = mean(daily_spy)
+daily_sd = sd(daily_spy)
+#daily calibration
+daily_sd_hat = sqrt(252)*daily_sd
+daily_mu_hat = 252*daily_mean + daily_sd_hat^2/2
+
+daily_sd_hat
+daily_mu_hat
+
+daily_sim <- simGBM(S = 371.99, DTintervals = 252 , 
+                    mu = daily_mu_hat, 
+                    sig = daily_sd_hat, numSims = 100)
+
+df <- daily_sim[-c(1)] #omit the first col, its useless for graphing
+mel <- melt(as.matrix(df)) #to use ggplot we must melt the df into something we can graph 
+
+var <- melt(as.matrix(calculate_VaR(df, .05)))
+
+ggplot(var,  aes(x = Var1, y = value, color = 0)) +
+  theme_bw() + theme(legend.position = "none") +
+  geom_line() +  ggtitle('Value at Risk of SPY for 252 days') +
+  xlab('Weeks') + ylab('Price')
+
+ggplot(mel, aes(x = Var1, y = value, color = Var2)) +
+  theme_bw() + theme(legend.position = "none") +
+  geom_line() +  ggtitle('Simulation of SPY for 252 days') +
+  xlab('Days') + ylab('Price')
+
+
+```
+
+Compute the weekly returns over this sample period
+
+```{r}
+weekly_spy = weeklyReturn(SPY$SPY.Adjusted, type = "log")
+```
+
+Assume that the price follows a GBM. Calibrate the model and report mu and sigma
+
+```{r}
+#weekly mean, sd
+weekly_mean = mean(weekly_spy)
+weekly_sd = sd(weekly_spy)
+#weekly calibration
+weekly_sd_hat = sqrt(52)*weekly_sd
+weekly_mu_hat = 52*weekly_mean + daily_sd_hat^2/2
+
+weekly_sd_hat
+weekly_mu_hat
+
+weekly_sim <- simGBM(S = 371.99, DTintervals = 52 , 
+                     mu = weekly_mu_hat, 
+                     sig = weekly_sd_hat, numSims = 100)
+df <- weekly_sim[-c(1)] #omit the first col, its useless for graphing
+mel <- melt(as.matrix(df)) #to use ggplot we must melt the df into something we can graph 
+
+var <- melt(as.matrix(calculate_VaR(df, .05)))
+
+ggplot(var,  aes(x = Var1, y = value, color = 0)) +
+  theme_bw() + theme(legend.position = "none") +
+  geom_line() +  ggtitle('Value at Risk of SPY for 52 weeks') +
+  xlab('Weeks') + ylab('Price')
+
+ggplot(mel, aes(x = Var1, y = value, color = Var2)) +
+  theme_bw() + theme(legend.position = "none") +
+  geom_line() +  ggtitle('Simulation of SPY for 52 weeks') +
+  xlab('Weeks') + ylab('Price')
+
+```
+
+
