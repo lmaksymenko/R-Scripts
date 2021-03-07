@@ -1,6 +1,6 @@
 ---
 title: "Lab 3"
-authors: Leo Maksymenko, Sid Iyer, Zheng Li
+authors: -
 output: pdf_document
 ---
 
