@@ -55,6 +55,79 @@ Sim<numSims> is the simulation number
   return(sims)
 }
 
+
+#optimized 2#  ##use this function its shaves another second##
+
+simGBM <- function(S = 100, DTintervals = 252, mu = 0.1, sig = 0.2, numSims = 1){
+   "
+  Generates a Geometric Brownian Motion
+  
+  Inputs:
+  S = starting value
+  DTintervals = the number of intervals to generate the bm
+  mu = mu variable
+  sig = sigma variable
+  numSims = number of simulations to run
+  
+  Returns:
+  A matrix
+  
+  Index | t/Simulation | Sim1 ... Sim<numSims> +1
+    0
+    .
+    .
+    .
+<DTintervals +1>
+the first row is just the starting val
+the t/Simulation column is the value of dt for that row
+Sim<numSims> is the simulation number
+  "
+   dt <- 1/DTintervals#not sure if this is the correct way to do this
+   
+   gbmVals <- matrix( rnorm(DTintervals*numSims, dt*(mu - 0.5*sig^2), sig*sqrt(dt)), nrow = DTintervals, ncol = numSims) #takes the most time
+   gbmVals <- apply(gbmVals, 2, cumsum)
+   sims <- (matrix(S, nrow = DTintervals, ncol = numSims)) *exp(gbmVals)
+   
+   #add the row of initial values
+   sims <- rbind(c(rep(S, numSims)),sims )
+   
+   #create the t x axis
+   sims <- cbind(c(0:DTintervals) * c(rep(1, DTintervals + 1)), sims)
+   
+   #create the x axis names
+   colnames(sims) <- c("t / Simulation", paste("Sim", 1:numSims, sep=""))
+   return(sims)
+}
+
+
+#optimized 3 ##use this if you dont need lables##
+
+simGBM <- function(S = 100, DTintervals = 252, mu = 0.1, sig = 0.2, numSims = 1){
+   "
+  Generates a Geometric Brownian Motion
+  
+  Inputs:
+  S = starting value
+  DTintervals = the number of intervals to generate the bm
+  mu = mu variable
+  sig = sigma variable
+  numSims = number of simulations to run
+  
+  Returns:
+  Matrix
+  
+the first row is just the starting val
+each col is the individual simulation
+  "
+   dt <- 1/DTintervals#not sure if this is the correct way to do this
+   gbmVals <- matrix( rnorm(DTintervals*numSims, dt*(mu - 0.5*sig^2), sig*sqrt(dt)), nrow = DTintervals, ncol = numSims) 
+   gbmVals <- apply(gbmVals, 2, cumsum)
+   sims <- (matrix(S, nrow = DTintervals, ncol = numSims)) *exp(gbmVals)
+   #add the row of initial values
+   sims <- rbind(c(rep(S, numSims)),sims )
+   return(sims)
+}
+
 #speed test
 for (i in 1:10){
   ptm <- proc.time()
